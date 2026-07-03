@@ -1,0 +1,36 @@
+version: 2
+
+project_name: episki
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: episki
+    main: ./cmd/episki
+    binary: episki
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Version }}
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    files:
+      - LICENSE*
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  disable: true  # release-please owns the changelog

@@ -32,13 +32,15 @@ mkdir -p "$INSTALL_DIR"
 
 uname_s="$(uname -s)"
 uname_m="$(uname -m)"
+# os/arch must match goreleaser's default {{ .Os }}/{{ .Arch }} archive
+# naming exactly: lowercase GOOS and amd64/arm64.
 case "$uname_s" in
-  Darwin) os="Darwin" ;;
-  Linux)  os="Linux" ;;
+  Darwin) os="darwin" ;;
+  Linux)  os="linux" ;;
   *) echo "unsupported OS: $uname_s" >&2; exit 1 ;;
 esac
 case "$uname_m" in
-  x86_64|amd64) arch="x86_64" ;;
+  x86_64|amd64) arch="amd64" ;;
   arm64|aarch64) arch="arm64" ;;
   *) echo "unsupported arch: $uname_m" >&2; exit 1 ;;
 esac

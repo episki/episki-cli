@@ -32,7 +32,38 @@ func Command(rf *RootFlags) *cobra.Command {
 	cmd.AddCommand(logoutCmd())
 	cmd.AddCommand(statusCmd(rf))
 	cmd.AddCommand(whoamiCmd(rf))
+	cmd.AddCommand(refreshCmd())
 	return cmd
+}
+
+// refreshCmd forces a token refresh even when the access token hasn't
+// expired. Workspace claims are stamped server-side (by `episki workspaces
+// use` or the web app) and only reach this CLI's JWT on the next refresh, so
+// this is the way to pick up an out-of-band workspace switch.
+func refreshCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "refresh",
+		Short: "Refresh the stored session token (picks up workspace changes)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			s, err := LoadSession()
+			if err != nil {
+				return err
+			}
+			if s == nil || s.RefreshToken == "" {
+				return fmt.Errorf("no stored session — run `episki auth login`")
+			}
+			refreshed, err := RefreshSession(cmd.Context(), s)
+			if err != nil {
+				return err
+			}
+			if ws := WorkspaceID(refreshed.AccessToken); ws != "" {
+				fmt.Fprintf(os.Stderr, "Session refreshed. Active workspace: %s\n", ws)
+			} else {
+				fmt.Fprintln(os.Stderr, "Session refreshed. No workspace selected — run `episki workspaces use <id|slug>`.")
+			}
+			return nil
+		},
+	}
 }
 
 func loginCmd() *cobra.Command {
@@ -105,6 +136,15 @@ func RunStatus(ctx context.Context, rf *RootFlags) error {
 		fmt.Fprintf(os.Stdout, "  User:    %s\n", cred.Session.Email)
 	}
 	fmt.Fprintf(os.Stdout, "  Project: %s\n", cfg.Supabase.URL)
+	if ws := WorkspaceID(cred.Token); ws != "" {
+		label := ws
+		if cfg.Workspace.ID == ws && cfg.Workspace.Name != "" {
+			label = fmt.Sprintf("%s (%s)", cfg.Workspace.Name, ws)
+		}
+		fmt.Fprintf(os.Stdout, "  Workspace: %s\n", label)
+	} else {
+		fmt.Fprintln(os.Stdout, "  Workspace: none — run `episki workspaces use <id|slug>`")
+	}
 	return nil
 }
 

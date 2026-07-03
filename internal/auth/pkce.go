@@ -138,11 +138,11 @@ func buildSupabaseAuthorizeURL(s config.Supabase, provider, redirectTo, challeng
 // supabaseTokenResp is what /auth/v1/token returns for both grant_type=pkce
 // and grant_type=refresh_token.
 type supabaseTokenResp struct {
-	AccessToken  string          `json:"access_token"`
-	RefreshToken string          `json:"refresh_token"`
-	TokenType    string          `json:"token_type"`
-	ExpiresIn    int             `json:"expires_in"`
-	ExpiresAt    int64           `json:"expires_at"`
+	AccessToken  string           `json:"access_token"`
+	RefreshToken string           `json:"refresh_token"`
+	TokenType    string           `json:"token_type"`
+	ExpiresIn    int              `json:"expires_in"`
+	ExpiresAt    int64            `json:"expires_at"`
 	User         supabaseAuthUser `json:"user"`
 }
 

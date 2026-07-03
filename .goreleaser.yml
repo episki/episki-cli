@@ -29,6 +29,24 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
+# Publishes a formula to the episki/homebrew-tap repo on each release, so
+# users can `brew install episki/tap/episki`. Prerequisites (see README):
+# the tap repo must exist and the release workflow needs a TAP_GITHUB_TOKEN
+# secret with push access to it — GITHUB_TOKEN only covers this repo.
+brews:
+  - name: episki
+    repository:
+      owner: episki
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://episki.com
+    description: The official command-line interface for episki
+    install: |
+      bin.install "episki"
+    test: |
+      system "#{bin}/episki", "--version"
+
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 

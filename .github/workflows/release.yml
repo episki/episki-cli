@@ -39,3 +39,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Push access to episki/homebrew-tap for the brew formula.
+          # Must be set before the first release or the brew step fails.
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}

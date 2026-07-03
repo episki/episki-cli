@@ -18,15 +18,16 @@ import (
 )
 
 // New returns a postgrest-go client wired with the user's credential and the
-// project's anon key. It refreshes the OAuth access token if necessary
-// before constructing the client.
-func New(ctx context.Context, rf *auth.RootFlags) (*postgrest.Client, error) {
+// project's publishable key, plus the resolved credential itself so callers
+// can read JWT claims (e.g. the active workspace). It refreshes the OAuth
+// access token if necessary before constructing the client.
+func New(ctx context.Context, rf *auth.RootFlags) (*postgrest.Client, auth.Credential, error) {
 	cfg, err := config.Load()
 	if err != nil {
-		return nil, err
+		return nil, auth.Credential{}, err
 	}
 	if cfg.Supabase.URL == "" || cfg.Supabase.AnonKey == "" {
-		return nil, errors.New("supabase project is not configured — set [supabase] in ~/.config/episki/config.toml")
+		return nil, auth.Credential{}, errors.New("supabase project is not configured — set [supabase] in ~/.config/episki/config.toml")
 	}
 	apiKey := ""
 	if rf != nil {
@@ -34,7 +35,7 @@ func New(ctx context.Context, rf *auth.RootFlags) (*postgrest.Client, error) {
 	}
 	cred, err := auth.Resolve(ctx, apiKey)
 	if err != nil {
-		return nil, err
+		return nil, auth.Credential{}, err
 	}
 
 	headers := map[string]string{
@@ -44,5 +45,5 @@ func New(ctx context.Context, rf *auth.RootFlags) (*postgrest.Client, error) {
 	// The empty schema argument means "public", which is what we want for
 	// the Data API. Per-call schema overrides remain available on the
 	// returned client.
-	return postgrest.NewClient(cfg.Supabase.RestURL(), "", headers), nil
+	return postgrest.NewClient(cfg.Supabase.RestURL(), "", headers), cred, nil
 }

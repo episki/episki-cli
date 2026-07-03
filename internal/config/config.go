@@ -20,6 +20,15 @@ import (
 type Config struct {
 	Supabase Supabase `toml:"supabase,omitempty"`
 
+	// AppURL is the episki web app origin; `episki workspaces use` calls its
+	// /api/auth/switch-workspace endpoint to stamp the workspace JWT claim.
+	AppURL string `toml:"app_url,omitempty"`
+
+	// Workspace is display-only bookkeeping written by `episki workspaces
+	// use`. The JWT claim is the sole authority for scoping; commands must
+	// never use these values as a filter source.
+	Workspace Workspace `toml:"workspace,omitempty"`
+
 	LastUpdateCheckUnix int64 `toml:"last_update_check_unix,omitempty"`
 }
 
@@ -27,12 +36,20 @@ type Config struct {
 type Supabase struct {
 	// URL is the project URL, e.g. "https://abcdef.supabase.co".
 	URL string `toml:"url,omitempty"`
-	// AnonKey is the project's public anon key. Required on every request as
-	// the `apikey` header; safe to ship in the binary.
+	// AnonKey is the project's public API key sent as the `apikey` header on
+	// every request — an opaque publishable key (sb_publishable_*). The TOML
+	// field keeps the historical name `anon_key`. Safe to ship in the binary;
+	// it identifies the project, not the user.
 	AnonKey string `toml:"anon_key,omitempty"`
 	// Provider is the default OAuth provider used by `episki auth login`,
-	// e.g. "google" or "github". Override per-invocation with `--provider`.
+	// e.g. "google" or "azure". Override per-invocation with `--provider`.
 	Provider string `toml:"provider,omitempty"`
+}
+
+// Workspace is the last workspace selected via `episki workspaces use`.
+type Workspace struct {
+	ID   string `toml:"id,omitempty"`
+	Name string `toml:"name,omitempty"`
 }
 
 // AuthorizeURL returns the Supabase Auth authorize endpoint.
@@ -48,16 +65,16 @@ func (s Supabase) UserURL() string { return s.URL + "/auth/v1/user" }
 func (s Supabase) RestURL() string { return s.URL + "/rest/v1" }
 
 // Defaults returns the built-in defaults used when no config file exists.
-//
-// TODO(episki): replace these placeholders with the real episki Supabase
-// project URL, anon key, and default OAuth provider.
+// These point at the production episki Supabase project (custom domain
+// api.episki.com); the publishable key is browser-safe by design.
 func Defaults() Config {
 	return Config{
 		Supabase: Supabase{
-			URL:      "https://your-project.supabase.co",
-			AnonKey:  "REPLACE_WITH_PROJECT_ANON_KEY",
-			Provider: "",
+			URL:      "https://api.episki.com",
+			AnonKey:  "sb_publishable_aE8XQgfMHNTIlqgo_1ZhCQ_hMj1g0t7",
+			Provider: "google",
 		},
+		AppURL: "https://app.episki.com",
 	}
 }
 
@@ -100,8 +117,16 @@ func readFromDisk() (Config, error) {
 	if v := os.Getenv("SUPABASE_URL"); v != "" {
 		cfg.Supabase.URL = v
 	}
+	// SUPABASE_KEY is the base repo's canonical name for the publishable
+	// key; SUPABASE_ANON_KEY is kept for back-compat and wins if both are set.
+	if v := os.Getenv("SUPABASE_KEY"); v != "" {
+		cfg.Supabase.AnonKey = v
+	}
 	if v := os.Getenv("SUPABASE_ANON_KEY"); v != "" {
 		cfg.Supabase.AnonKey = v
+	}
+	if v := os.Getenv("EPISKI_APP_URL"); v != "" {
+		cfg.AppURL = v
 	}
 	return cfg, nil
 }

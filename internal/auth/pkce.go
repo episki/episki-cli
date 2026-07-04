@@ -233,7 +233,7 @@ func supabaseTokenRequest(ctx context.Context, s config.Supabase, grantType stri
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("token request returned %s", resp.Status)
+		return nil, fmt.Errorf("token request failed: %s", readAuthError(resp))
 	}
 	var tok supabaseTokenResp
 	if err := json.NewDecoder(resp.Body).Decode(&tok); err != nil {

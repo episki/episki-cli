@@ -72,7 +72,13 @@ func loginCmd() *cobra.Command {
 		Use:   "login",
 		Short: "Sign in via your browser, or with an emailed code (--email)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
+			// Email flows get longer: delivery lag plus inbox checking
+			// regularly exceeds the 5 minutes a browser redirect needs.
+			timeout := 5 * time.Minute
+			if email != "" {
+				timeout = 15 * time.Minute
+			}
+			ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 			defer cancel()
 			var (
 				s   *Session

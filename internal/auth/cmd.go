@@ -67,14 +67,28 @@ func refreshCmd() *cobra.Command {
 }
 
 func loginCmd() *cobra.Command {
-	var provider string
+	var provider, email, code string
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Sign in via your browser",
+		Short: "Sign in via your browser, or with an emailed code (--email)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
 			defer cancel()
-			s, err := Login(ctx, LoginOptions{Provider: provider})
+			var (
+				s   *Session
+				err error
+			)
+			if code != "" && email == "" {
+				return fmt.Errorf("--code requires --email")
+			}
+			switch {
+			case code != "":
+				s, err = LoginWithOTP(ctx, email, code)
+			case email != "":
+				s, err = LoginWithMagicLink(ctx, email)
+			default:
+				s, err = Login(ctx, LoginOptions{Provider: provider})
+			}
 			if err != nil {
 				return err
 			}
@@ -87,6 +101,8 @@ func loginCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "OAuth provider routed through Supabase Auth (e.g. google, github)")
+	cmd.Flags().StringVar(&email, "email", "", "Sign in via a magic link emailed to this address instead of the browser OAuth flow")
+	cmd.Flags().StringVar(&code, "code", "", "Verify an emailed one-time code non-interactively (requires --email)")
 	return cmd
 }
 

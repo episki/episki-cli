@@ -57,7 +57,10 @@ func Login(ctx context.Context, opts LoginOptions) (*Session, error) {
 		return nil, fmt.Errorf("open loopback listener: %w", err)
 	}
 	defer listener.Close()
-	redirectTo := fmt.Sprintf("http://%s/callback", listener.Addr().String())
+	// No path on the redirect: Supabase matches redirect URLs with glob
+	// patterns where `/` is a separator, so the allowlisted
+	// `http://127.0.0.1:*` matches host:port but not host:port/callback.
+	redirectTo := "http://" + listener.Addr().String()
 
 	authorizeURL := buildSupabaseAuthorizeURL(cfg.Supabase, provider, redirectTo, challenge, state)
 
@@ -68,7 +71,7 @@ func Login(ctx context.Context, opts LoginOptions) (*Session, error) {
 	resultCh := make(chan cbResult, 1)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		if errMsg := q.Get("error"); errMsg != "" {
 			writeBrowserResponse(w, false, q.Get("error_description"))

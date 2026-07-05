@@ -263,18 +263,56 @@ func randomString(n int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b)[:n], nil
 }
 
+// episkiSymbolSVG is the brand mark (rounded hexagon + ring), inlined so the
+// loopback pages have no external dependencies.
+const episkiSymbolSVG = `<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="episki"><path d="M256 45.39 76.751 150.695v210.61L256 466.61l179.249-105.305v-210.61Z" fill="#1c91fe" stroke="#1c91fe" stroke-width="90.78" stroke-linejoin="round"/><path d="M352.227 256c0-53.145-43.082-96.227-96.227-96.227S159.773 202.855 159.773 256 202.855 352.227 256 352.227 352.227 309.145 352.227 256Z" fill="#043f67" stroke="#fff" stroke-width="36.312" stroke-linejoin="round"/></svg>`
+
+// browserPage is the shell for the loopback success/failure pages. Slots:
+// favicon (base64 svg), symbol svg, heading, subtext.
+const browserPage = `<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>episki</title>
+<link rel="icon" href="data:image/svg+xml;base64,%s">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #fbfaf8; color: #1c1c1c;
+  }
+  main { text-align: center; padding: 2rem 1.5rem; animation: rise .45s ease-out; }
+  main svg { width: 64px; height: 64px; margin-bottom: 2.25rem; }
+  h1 {
+    margin: 0 0 1rem; font-size: 2.75rem; font-weight: 650;
+    letter-spacing: -0.03em; line-height: 1.1;
+  }
+  p { margin: 0 auto; max-width: 26rem; font-size: 1.0625rem; line-height: 1.65; color: #6f6b66; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0e1116; color: #f0efed; }
+    p { color: #98948e; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+</style>
+<main>
+  %s
+  <h1>%s</h1>
+  <p>%s</p>
+</main>
+</html>
+`
+
 func writeBrowserResponse(w http.ResponseWriter, ok bool, msg string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if ok {
-		_, _ = w.Write([]byte(`<!doctype html><meta charset="utf-8"><title>episki</title>
-<style>body{font:16px/1.5 system-ui;margin:4rem auto;max-width:32rem;text-align:center}</style>
-<h1>You're signed in.</h1><p>You can close this tab and return to your terminal.</p>`))
-		return
+	favicon := base64.StdEncoding.EncodeToString([]byte(episkiSymbolSVG))
+	heading, sub := "You&rsquo;re in.", "The episki CLI is signed in as you.<br>Close this tab and head back to your terminal."
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		heading = "Sign-in failed."
+		sub = sanitize(msg) + "<br>Return to your terminal for details."
 	}
-	w.WriteHeader(http.StatusBadRequest)
-	_, _ = fmt.Fprintf(w, `<!doctype html><meta charset="utf-8"><title>episki</title>
-<style>body{font:16px/1.5 system-ui;margin:4rem auto;max-width:32rem;text-align:center}</style>
-<h1>Sign-in failed.</h1><p>%s</p><p>Return to your terminal for details.</p>`, sanitize(msg))
+	_, _ = fmt.Fprintf(w, browserPage, favicon, episkiSymbolSVG, heading, sub)
 }
 
 func sanitize(s string) string {

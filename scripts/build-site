@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Builds the static payload for cli.episki.com (Vercel project `cli-site`).
+# The canonical installer lives at bin/install.sh; this just stages it.
+set -eu
+rm -rf dist-site
+mkdir -p dist-site
+cp bin/install.sh dist-site/install.sh

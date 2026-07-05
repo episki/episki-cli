@@ -1,5 +1,8 @@
 /dist/
+/dist-site/
+/.vercel/
 /episki
+/bin/episki-dev
 /cmd/episki/episki
 *.test
 *.out

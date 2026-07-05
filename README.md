@@ -22,6 +22,22 @@ brew install episki/tap/episki
 curl -sSf https://cli.episki.com/install.sh | sh
 ```
 
+### Nix
+
+Run without installing:
+
+```sh
+nix run github:episki/episki-cli -- auth status
+```
+
+Install into your profile:
+
+```sh
+nix profile install github:episki/episki-cli
+```
+
+Requires [Nix](https://nixos.org/download) with flakes enabled.
+
 ### Install with Go
 
 Requires [Go](https://go.dev/doc/install) 1.22+.
@@ -163,6 +179,9 @@ export EPISKI_NO_UPDATE_CHECK=1
 ```sh
 ./scripts/run auth status
 ```
+
+Dependencies are vendored (the Nix flake relies on it) — after changing
+`go.mod`, re-run `go mod vendor` and commit the result.
 
 ## Releasing
 

@@ -10,14 +10,13 @@
       in {
         packages.default = pkgs.buildGoModule {
           pname = "episki";
-          # Bumped automatically by release-please.
-          version = "0.0.0";
+          version = "1.0.0"; # x-release-please-version
           src = ./.;
-          # Replaced by `nix build` once go.sum exists; until then run
-          # `nix build --update-input nixpkgs` after `go mod tidy`.
+          # Dependencies are vendored (vendor/ is committed), so no fetch
+          # hash is needed and the build is reproducible as-is.
           vendorHash = null;
           subPackages = [ "cmd/episki" ];
-          ldflags = [ "-s" "-w" "-X main.Version=0.0.0" ];
+          ldflags = [ "-s" "-w" "-X main.Version=1.0.0" ]; # x-release-please-version
           meta = {
             description = "episki CLI";
             homepage = "https://github.com/episki/episki-cli";

@@ -6,7 +6,8 @@
   "bump-patch-for-minor-pre-major": true,
   "packages": {
     ".": {
-      "package-name": "episki-cli"
+      "package-name": "episki-cli",
+      "extra-files": ["flake.nix"]
     }
   }
 }

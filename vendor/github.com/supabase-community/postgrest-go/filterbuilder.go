@@ -1,9 +1,12 @@
 package postgrest
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -16,46 +19,77 @@ type FilterBuilder struct {
 	tableName string
 	headers   map[string]string
 	params    map[string]string
+	err       error
 }
 
 // ExecuteString runs the PostgREST query, returning the result as a JSON
 // string.
 func (f *FilterBuilder) ExecuteString() (string, int64, error) {
-	return executeString(f.client, f.method, f.body, []string{f.tableName}, f.headers, f.params)
+	return executeString(context.Background(), f.client, f.method, f.body, []string{f.tableName}, f.headers, f.params, f.err)
+}
+
+// ExecuteStringWithContext runs the PostgREST query, returning the result as
+// a JSON string.
+func (f *FilterBuilder) ExecuteStringWithContext(ctx context.Context) (string, int64, error) {
+	return executeString(ctx, f.client, f.method, f.body, []string{f.tableName}, f.headers, f.params, f.err)
 }
 
 // Execute runs the PostgREST query, returning the result as a byte slice.
 func (f *FilterBuilder) Execute() ([]byte, int64, error) {
-	return execute(f.client, f.method, f.body, []string{f.tableName}, f.headers, f.params)
+	return execute(context.Background(), f.client, f.method, f.body, []string{f.tableName}, f.headers, f.params, f.err)
+}
+
+// ExecuteWithContext runs the PostgREST query with the given context,
+// returning the result as a byte slice.
+func (f *FilterBuilder) ExecuteWithContext(ctx context.Context) ([]byte, int64, error) {
+	return execute(ctx, f.client, f.method, f.body, []string{f.tableName}, f.headers, f.params, f.err)
 }
 
 // ExecuteTo runs the PostgREST query, encoding the result to the supplied
 // interface. Note that the argument for the to parameter should always be a
 // reference to a slice.
 func (f *FilterBuilder) ExecuteTo(to interface{}) (countType, error) {
-	return executeTo(f.client, f.method, f.body, to, []string{f.tableName}, f.headers, f.params)
+	return executeTo(context.Background(), f.client, f.method, f.body, to, []string{f.tableName}, f.headers, f.params, f.err)
+}
+
+// ExecuteToWithContext runs the PostgREST query with the given context,
+// encoding the result to the supplied interface. Note that the argument for
+// the to parameter should always be a reference to a slice.
+func (f *FilterBuilder) ExecuteToWithContext(ctx context.Context, to interface{}) (countType, error) {
+	return executeTo(ctx, f.client, f.method, f.body, to, []string{f.tableName}, f.headers, f.params, f.err)
 }
 
 var filterOperators = []string{"eq", "neq", "gt", "gte", "lt", "lte", "like", "ilike", "is", "in", "cs", "cd", "sl", "sr", "nxl", "nxr", "adj", "ov", "fts", "plfts", "phfts", "wfts"}
 
-func isOperator(value string) bool {
-	for _, operator := range filterOperators {
-		if value == operator {
-			return true
-		}
+// appendFilter is a helper method that appends a filter to existing filters on a column
+func (f *FilterBuilder) appendFilter(column, filterValue string) *FilterBuilder {
+	if existing, ok := f.params[column]; ok && existing != "" {
+		// If a filter already exists for this column, combine with 'and'
+		f.params["and"] = fmt.Sprintf("(%s.%s,%s.%s)", column, existing, column, filterValue)
+		delete(f.params, column)
+	} else if existingAnd, ok := f.params["and"]; ok {
+		// If an 'and' parameter already exists, append to it
+		f.params["and"] = strings.TrimSuffix(existingAnd, ")") + "," + column + "." + filterValue + ")"
+	} else {
+		f.params[column] = filterValue
 	}
-	return false
+	return f
+}
+
+func isOperator(value string) bool {
+	return slices.Contains(filterOperators, value)
 }
 
 // Filter adds a filtering operator to the query. For a list of available
 // operators, see: https://postgrest.org/en/stable/api.html#operators
 func (f *FilterBuilder) Filter(column, operator, value string) *FilterBuilder {
 	if !isOperator(operator) {
-		f.client.ClientError = fmt.Errorf("invalid filter operator")
+		err := fmt.Errorf("invalid Filter operator: %s", operator)
+		f.client.ClientError = err
+		f.err = errors.Join(f.err, err)
 		return f
 	}
-	f.params[column] = fmt.Sprintf("%s.%s", operator, value)
-	return f
+	return f.appendFilter(column, fmt.Sprintf("%s.%s", operator, value))
 }
 
 func (f *FilterBuilder) And(filters, foreignTable string) *FilterBuilder {
@@ -80,60 +114,50 @@ func (f *FilterBuilder) Not(column, operator, value string) *FilterBuilder {
 	if !isOperator(operator) {
 		return f
 	}
-	f.params[column] = fmt.Sprintf("not.%s.%s", operator, value)
-	return f
+	return f.Filter(column, "not."+operator, value)
 }
 
 func (f *FilterBuilder) Match(userQuery map[string]string) *FilterBuilder {
 	for key, value := range userQuery {
-		f.params[key] = "eq." + value
+		f.Filter(key, "eq", value)
 	}
 	return f
 }
 
 func (f *FilterBuilder) Eq(column, value string) *FilterBuilder {
-	f.params[column] = "eq." + value
-	return f
+	return f.Filter(column, "eq", value)
 }
 
 func (f *FilterBuilder) Neq(column, value string) *FilterBuilder {
-	f.params[column] = "neq." + value
-	return f
+	return f.Filter(column, "neq", value)
 }
 
 func (f *FilterBuilder) Gt(column, value string) *FilterBuilder {
-	f.params[column] = "gt." + value
-	return f
+	return f.Filter(column, "gt", value)
 }
 
 func (f *FilterBuilder) Gte(column, value string) *FilterBuilder {
-	f.params[column] = "gte." + value
-	return f
+	return f.Filter(column, "gte", value)
 }
 
 func (f *FilterBuilder) Lt(column, value string) *FilterBuilder {
-	f.params[column] = "lt." + value
-	return f
+	return f.Filter(column, "lt", value)
 }
 
 func (f *FilterBuilder) Lte(column, value string) *FilterBuilder {
-	f.params[column] = "lte." + value
-	return f
+	return f.Filter(column, "lte", value)
 }
 
 func (f *FilterBuilder) Like(column, value string) *FilterBuilder {
-	f.params[column] = "like." + value
-	return f
+	return f.Filter(column, "like", value)
 }
 
 func (f *FilterBuilder) Ilike(column, value string) *FilterBuilder {
-	f.params[column] = "ilike." + value
-	return f
+	return f.Filter(column, "ilike", value)
 }
 
 func (f *FilterBuilder) Is(column, value string) *FilterBuilder {
-	f.params[column] = "is." + value
-	return f
+	return f.Filter(column, "is", value)
 }
 
 func (f *FilterBuilder) In(column string, values []string) *FilterBuilder {
@@ -147,8 +171,7 @@ func (f *FilterBuilder) In(column string, values []string) *FilterBuilder {
 			cleanedValues = append(cleanedValues, value)
 		}
 	}
-	f.params[column] = fmt.Sprintf("in.(%s)", strings.Join(cleanedValues, ","))
-	return f
+	return f.appendFilter(column, fmt.Sprintf("in.(%s)", strings.Join(cleanedValues, ",")))
 }
 
 func (f *FilterBuilder) Contains(column string, value []string) *FilterBuilder {
@@ -158,9 +181,8 @@ func (f *FilterBuilder) Contains(column string, value []string) *FilterBuilder {
 	}
 
 	valueString := fmt.Sprintf("{%s}", strings.Join(newValue, ","))
-	
-	f.params[column] = "cs." + valueString
-	return f
+
+	return f.appendFilter(column, "cs."+valueString)
 }
 
 func (f *FilterBuilder) ContainedBy(column string, value []string) *FilterBuilder {
@@ -170,52 +192,49 @@ func (f *FilterBuilder) ContainedBy(column string, value []string) *FilterBuilde
 	}
 
 	valueString := fmt.Sprintf("{%s}", strings.Join(newValue, ","))
-	
-	f.params[column] = "cd." + valueString
-	return f
+
+	return f.appendFilter(column, "cd."+valueString)
 }
 
 func (f *FilterBuilder) ContainsObject(column string, value interface{}) *FilterBuilder {
 	sum, err := json.Marshal(value)
 	if err != nil {
 		f.client.ClientError = err
+		f.err = errors.Join(f.err, fmt.Errorf("error marshaling value for ContainsObject: %w", err))
+		return f
 	}
-	f.params[column] = "cs." + string(sum)
-	return f
+	return f.appendFilter(column, "cs."+string(sum))
 }
 
 func (f *FilterBuilder) ContainedByObject(column string, value interface{}) *FilterBuilder {
 	sum, err := json.Marshal(value)
 	if err != nil {
+		err := fmt.Errorf("error marshaling value for ContainedByObject: %w", err)
 		f.client.ClientError = err
+		f.err = errors.Join(f.err, err)
+		return f
 	}
-	f.params[column] = "cs." + string(sum)
-	return f
+	return f.appendFilter(column, "cd."+string(sum))
 }
 
 func (f *FilterBuilder) RangeLt(column, value string) *FilterBuilder {
-	f.params[column] = "sl." + value
-	return f
+	return f.appendFilter(column, "sl."+value)
 }
 
 func (f *FilterBuilder) RangeGt(column, value string) *FilterBuilder {
-	f.params[column] = "sr." + value
-	return f
+	return f.appendFilter(column, "sr."+value)
 }
 
 func (f *FilterBuilder) RangeGte(column, value string) *FilterBuilder {
-	f.params[column] = "nxl." + value
-	return f
+	return f.appendFilter(column, "nxl."+value)
 }
 
 func (f *FilterBuilder) RangeLte(column, value string) *FilterBuilder {
-	f.params[column] = "nxr." + value
-	return f
+	return f.appendFilter(column, "nxr."+value)
 }
 
 func (f *FilterBuilder) RangeAdjacent(column, value string) *FilterBuilder {
-	f.params[column] = "adj." + value
-	return f
+	return f.appendFilter(column, "adj."+value)
 }
 
 func (f *FilterBuilder) Overlaps(column string, value []string) *FilterBuilder {
@@ -225,8 +244,7 @@ func (f *FilterBuilder) Overlaps(column string, value []string) *FilterBuilder {
 	}
 
 	valueString := fmt.Sprintf("{%s}", strings.Join(newValue, ","))
-	f.params[column] = "ov." + valueString
-	return f
+	return f.appendFilter(column, "ov."+valueString)
 }
 
 // TextSearch performs a full-text search filter. For more information, see
@@ -242,14 +260,15 @@ func (f *FilterBuilder) TextSearch(column, userQuery, config, tsType string) *Fi
 	} else if tsType == "" {
 		typePart = ""
 	} else {
-		f.client.ClientError = fmt.Errorf("invalid text search type")
+		err := fmt.Errorf("invalid text search type: %s", tsType)
+		f.client.ClientError = err
+		f.err = errors.Join(f.err, err)
 		return f
 	}
 	if config != "" {
 		configPart = fmt.Sprintf("(%s)", config)
 	}
-	f.params[column] = typePart + "fts" + configPart + "." + userQuery
-	return f
+	return f.appendFilter(column, typePart+"fts"+configPart+"."+userQuery)
 }
 
 // OrderOpts describes the options to be provided to Order.

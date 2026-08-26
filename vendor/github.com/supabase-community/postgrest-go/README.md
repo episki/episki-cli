@@ -1,6 +1,7 @@
 # Postgrest GO
 
 [![golangci-lint](https://github.com/supabase-community/postgrest-go/actions/workflows/golangci.yml/badge.svg)](https://github.com/supabase-community/postgrest-go/actions/workflows/golangci.yml) [![CodeFactor](https://www.codefactor.io/repository/github/supabase-community/postgrest-go/badge/main?s=101cab44de33934fd85cadcd9a9b535a05791670)](https://www.codefactor.io/repository/github/supabase-community/postgrest-go/overview/main)
+[![Go Coverage](https://github.com/supabase-community/postgrest-go/wiki/coverage.svg)](https://raw.githack.com/wiki/supabase-community/postgrest-go/coverage.html)
 
 Golang client for [PostgREST](https://postgrest.org). The goal of this library is to make an "ORM-like" restful interface.
 
@@ -42,12 +43,6 @@ func main() {
 }
 ```
 
-- select(): https://supabase.com/docs/reference/javascript/select
-- insert(): https://supabase.com/docs/reference/javascript/insert
-- update(): https://supabase.com/docs/reference/javascript/update
-- upsert(): https://supabase.com/docs/reference/javascript/upsert
-- delete(): https://supabase.com/docs/reference/javascript/delete
-
 ## Testing
 
 Some tests are implemented to run against mocked Postgrest endpoints. Optionally, tests can be run against an actual Postgrest instance by setting a `POSTGREST_URL` environment variable to the fully-qualified URL to a Postgrest instance, and, optionally, an `API_KEY` environment variable (if, for example, testing against a local Supabase instance).
@@ -59,6 +54,12 @@ To run all tests:
 ```bash
 go test ./...
 ```
+## Package made possible through the efforts of: 
+<a href="https://github.com/supabase-community/postgrest-go/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=supabase-community/postgrest-go" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
 
 ## License
 

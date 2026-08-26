@@ -112,6 +112,9 @@ func parseSemver(s string) []int {
 	}
 	out := make([]int, 3)
 	for i, p := range parts {
+		if p == "" {
+			return nil
+		}
 		n := 0
 		for _, r := range p {
 			if r < '0' || r > '9' {

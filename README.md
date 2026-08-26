@@ -40,7 +40,7 @@ Requires [Nix](https://nixos.org/download) with flakes enabled.
 
 ### Install with Go
 
-Requires [Go](https://go.dev/doc/install) 1.22+.
+Requires [Go](https://go.dev/doc/install) 1.25+.
 
 ```sh
 go install 'github.com/episki/episki-cli/cmd/episki@latest'
@@ -177,7 +177,9 @@ export EPISKI_NO_UPDATE_CHECK=1
 ## Development
 
 ```sh
-./scripts/run auth status
+./scripts/run auth status   # run the CLI from source
+go test ./...               # unit tests
+go vet ./...
 ```
 
 Dependencies are vendored (the Nix flake relies on it) — after changing
@@ -198,3 +200,7 @@ One-time setup before the first release:
    tap) — the default `GITHUB_TOKEN` can't write to other repos.
 4. Serve `bin/install.sh` at `https://cli.episki.com/install.sh` (the
    `episki upgrade` command and the curl installer both point there).
+
+## License
+
+[MIT](LICENSE)

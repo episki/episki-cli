@@ -15,8 +15,13 @@ func Register(root *cobra.Command, rf *auth.RootFlags) {
 	root.AddCommand(workspacesCmd(rf))
 	root.AddCommand(frameworksCmd(rf))
 	root.AddCommand(controlsCmd(rf))
+	root.AddCommand(programsCmd(rf))
 	root.AddCommand(workItemsCmd(rf))
 	root.AddCommand(evidenceCmd(rf))
 	root.AddCommand(policiesCmd(rf))
 	root.AddCommand(risksCmd(rf))
+	root.AddCommand(vendorsCmd(rf))
+	root.AddCommand(obligationsCmd(rf))
+	root.AddCommand(exceptionsCmd(rf))
+	root.AddCommand(goalsCmd(rf))
 }

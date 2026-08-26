@@ -81,7 +81,9 @@ func workItemsListCmd(rf *auth.RootFlags) *cobra.Command {
 		},
 	}
 	addListFlags(cmd, &lf)
-	cmd.Flags().StringVar(&kind, "kind", "", "Filter by kind (task, issue, assessment, review, ...)")
+	// The work_item_kind enum, verbatim from core's generated types.
+	cmd.Flags().StringVar(&kind, "kind", "", "Filter by kind (task, issue, assessment, review, decision, "+
+		"investigation, evidence_request, outreach_thread, vendor_questionnaire)")
 	cmd.Flags().BoolVar(&archived, "archived", false, "Show archived items instead of active ones")
 	return cmd
 }

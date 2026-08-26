@@ -69,10 +69,18 @@ episki [resource] <command> [flags...]
 | `workspaces` (`ws`) | `list`, `current`, `use <id\|slug>` |
 | `frameworks` | `list`, `get <id>` |
 | `controls` | `list`, `get <id\|ref>` |
-| `work-items` (`wi`, `tasks`) | `list`, `get <id\|ref>`, `update <id\|ref> --status/--due/--name`, `archive`, `restore` |
+| `programs` | `list`, `get <id>` |
+| `work-items` (`wi`, `tasks`) | `list [--kind K] [--archived]`, `get <id\|ref>`, `update <id\|ref> --status/--due/--name`, `archive`, `restore` |
 | `evidence` | `list`, `get <id>` |
 | `policies` | `list`, `get <id>` |
 | `risks` | `list`, `get <id\|ref>` |
+| `vendors` | `list`, `get <id>` |
+| `obligations` | `list`, `get <id\|ref>` |
+| `exceptions` | `list`, `get <id>` |
+| `goals` | `list`, `get <id>` |
+
+Assessments, reviews, decisions and the rest of the work-item kinds are
+`work-items list --kind <kind>` — they all live in one table.
 
 List commands take `--limit N` (default 50, server caps at 1000) and `--json`
 for scripting; `get` always prints JSON. For help on any command, append `--help`.

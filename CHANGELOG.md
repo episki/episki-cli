@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0](https://github.com/episki/episki-cli/compare/v1.0.0...v1.1.0) (2026-08-27)
+
+
+### Features
+
+* **evidence:** upload a file as evidence from the terminal ([9fbf049](https://github.com/episki/episki-cli/commit/9fbf0492c38e2c76b68875b8301ca8ba103b5d0f))
+* **resources:** vendors, programs, obligations, exceptions, and goals ([eb22aa6](https://github.com/episki/episki-cli/commit/eb22aa69d28e8e61ff0cb084a603f233d656f04d))
+
+
+### Bug Fixes
+
+* **auth:** sign in with the emailed code, not the emailed link ([37d0bc9](https://github.com/episki/episki-cli/commit/37d0bc91922b3cc5c75ff0f61858b714a5f94773))
+* **resources:** restore --archived, and stop leaking PGRST116 at users ([089f47c](https://github.com/episki/episki-cli/commit/089f47c9cc4c60c4e5728eddb24a94254c601a10))
+
+
+### Miscellaneous Chores
+
+* release 1.1.0 ([c594e03](https://github.com/episki/episki-cli/commit/c594e03cf6e4c6f393d68fae75f8a1b02df88d84))
+
 ## 1.0.0 (2026-07-05)
 
 

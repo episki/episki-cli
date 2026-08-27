@@ -10,13 +10,13 @@
       in {
         packages.default = pkgs.buildGoModule {
           pname = "episki";
-          version = "1.0.0"; # x-release-please-version
+          version = "1.1.0"; # x-release-please-version
           src = ./.;
           # Dependencies are vendored (vendor/ is committed), so no fetch
           # hash is needed and the build is reproducible as-is.
           vendorHash = null;
           subPackages = [ "cmd/episki" ];
-          ldflags = [ "-s" "-w" "-X main.Version=1.0.0" ]; # x-release-please-version
+          ldflags = [ "-s" "-w" "-X main.Version=1.1.0" ]; # x-release-please-version
           meta = {
             description = "episki CLI";
             homepage = "https://github.com/episki/episki-cli";

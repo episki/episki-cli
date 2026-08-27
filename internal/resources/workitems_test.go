@@ -1,6 +1,13 @@
 package resources
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/supabase-community/postgrest-go"
+)
 
 func TestIsUUID(t *testing.T) {
 	tests := []struct {
@@ -55,6 +62,48 @@ func TestParseDue(t *testing.T) {
 		t.Run("rejects "+in, func(t *testing.T) {
 			if _, err := parseDue(in); err == nil {
 				t.Fatalf("parseDue(%q) = nil error, want an error", in)
+			}
+		})
+	}
+}
+
+// filterArchived is the one query fragment in this package that a dependency
+// bump has already broken once: postgrest-go v0.0.12 turned Not() into a call
+// that rejects itself ("invalid Filter operator: not.is"), which silently cost
+// us `work-items list --archived`. These assert the wire format rather than
+// the builder call, so the next bump either keeps emitting this query or
+// fails here.
+func TestFilterArchivedEmitsQuery(t *testing.T) {
+	tests := []struct {
+		name     string
+		archived bool
+		want     string // substring the raw query must contain
+	}{
+		{"active items", false, "archived_at=is.null"},
+		{"archived items", true, "or=%28archived_at.not.is.null%29"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotQuery string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotQuery = r.URL.RawQuery
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`[]`))
+			}))
+			defer srv.Close()
+
+			client := postgrest.NewClient(srv.URL, "", map[string]string{})
+			q := client.From("work_items").Select("id", "", false).Eq("workspace_id", "ws-1")
+			if _, _, err := filterArchived(q, tt.archived).Execute(); err != nil {
+				t.Fatalf("execute: %v", err)
+			}
+			if !strings.Contains(gotQuery, tt.want) {
+				t.Errorf("query = %q, want it to contain %q", gotQuery, tt.want)
+			}
+			// The two modes must stay mutually exclusive: an archived listing
+			// that also carries archived_at=is.null returns nothing at all.
+			if tt.archived && strings.Contains(gotQuery, "archived_at=is.null") {
+				t.Errorf("query = %q, want no is.null filter on an archived listing", gotQuery)
 			}
 		})
 	}

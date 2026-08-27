@@ -62,11 +62,7 @@ func workItemsListCmd(rf *auth.RootFlags) *cobra.Command {
 				Select(workItemListSelect, "", false).
 				Eq("workspace_id", ws).
 				Is("deleted_at", "null")
-			if archived {
-				q = q.Not("archived_at", "is", "null")
-			} else {
-				q = q.Is("archived_at", "null")
-			}
+			q = filterArchived(q, archived)
 			if kind != "" {
 				q = q.Eq("kind", kind)
 			}
@@ -104,11 +100,27 @@ func workItemsGetCmd(rf *auth.RootFlags) *cobra.Command {
 			}
 			raw, _, err := workItemQuery(c, ws, args[0], workItemGetSelect).Execute()
 			if err != nil {
-				return err
+				return notFoundErr(err, "work item", args[0])
 			}
 			return printJSON(raw)
 		},
 	}
+}
+
+// filterArchived narrows a work-item query to archived or active rows.
+//
+// The archived half deliberately avoids postgrest-go's Not(): since v0.0.12
+// that method builds "not.<op>" and hands it to Filter(), which validates the
+// combined string against the operator list and rejects every call with
+// "invalid Filter operator: not.is". A single-condition Or() emits the
+// PostgREST the query actually needs — or=(archived_at.not.is.null) — through
+// an unaffected code path. Revisit if upstream fixes Not(); the test below
+// pins the emitted query either way.
+func filterArchived(q *postgrest.FilterBuilder, archived bool) *postgrest.FilterBuilder {
+	if archived {
+		return q.Or("archived_at.not.is.null", "")
+	}
+	return q.Is("archived_at", "null")
 }
 
 // workItemQuery builds a single-row lookup by id or ref.

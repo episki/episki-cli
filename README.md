@@ -96,10 +96,10 @@ and do here.
 `episki auth login` runs an OAuth PKCE flow against episki's auth in your
 browser. Tokens are stored in your OS keychain and refreshed automatically.
 
-`episki auth login --email you@example.com` signs in with an emailed magic
-link instead — the link lands on the CLI's local listener, so no browser
-OAuth round-trip is involved. Add `--code <n>` to verify an emailed one-time
-code non-interactively.
+`episki auth login --email you@example.com` signs in with a 6-digit code
+emailed to you, which the CLI then prompts for — no browser round-trip. Add
+`--code <n>` to pass a code from a previous send non-interactively, which is
+the shape CI wants.
 
 Credentials are resolved in this order:
 

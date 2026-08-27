@@ -49,7 +49,7 @@ func controlsCmd(rf *auth.RootFlags) *cobra.Command {
 }
 
 func evidenceCmd(rf *auth.RootFlags) *cobra.Command {
-	return resourceSpec{
+	cmd := resourceSpec{
 		use:        "evidence",
 		short:      "Evidence records in the workspace",
 		table:      "evidence",
@@ -61,6 +61,8 @@ func evidenceCmd(rf *auth.RootFlags) *cobra.Command {
 			{"valid until", "valid_until"}, {"updated", "updated_at"},
 		},
 	}.command(rf)
+	cmd.AddCommand(evidenceUploadCmd(rf))
+	return cmd
 }
 
 func policiesCmd(rf *auth.RootFlags) *cobra.Command {

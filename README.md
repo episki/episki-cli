@@ -71,7 +71,7 @@ episki [resource] <command> [flags...]
 | `controls` | `list`, `get <id\|ref>` |
 | `programs` | `list`, `get <id>` |
 | `work-items` (`wi`, `tasks`) | `list [--kind K] [--archived]`, `get <id\|ref>`, `update <id\|ref> --status/--due/--name`, `archive`, `restore` |
-| `evidence` | `list`, `get <id>` |
+| `evidence` | `list`, `get <id>`, `upload <file>` |
 | `policies` | `list`, `get <id>` |
 | `risks` | `list`, `get <id\|ref>` |
 | `vendors` | `list`, `get <id>` |
@@ -84,6 +84,27 @@ Assessments, reviews, decisions and the rest of the work-item kinds are
 
 List commands take `--limit N` (default 50, server caps at 1000) and `--json`
 for scripting; `get` always prints JSON. For help on any command, append `--help`.
+
+## Evidence
+
+`episki evidence upload <file>` puts a local file into the workspace's
+evidence store — the point of a CLI for this is piping artifacts straight out
+of a CI job:
+
+```sh
+episki evidence upload ./scan-report.pdf --type export --source "ci: nightly-scan"
+episki evidence upload ./soc2.pdf --evidence 7f3c…   # attach to an existing record
+```
+
+By default a new evidence record is created, named after the file; `--evidence`
+attaches to an existing one instead. Files are de-duplicated by SHA-256 across
+the workspace, so re-uploading bytes that are already there reports the
+existing record and uploads nothing — safe to run on every CI build.
+
+The bucket accepts PDF, ZIP, PNG/JPEG/WebP/GIF, Word/Excel, and plain
+text/CSV/Markdown, up to 50 MiB. The bytes go straight from your machine to
+storage on a short-lived signed URL; the app only ever sees the file's name,
+size, and hash.
 
 ## Authentication
 

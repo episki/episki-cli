@@ -20,8 +20,17 @@ import (
 
 // LoginWithMagicLink signs in by emailing a magic link whose redirect points
 // at a loopback listener, so clicking it hands the PKCE code straight to the
-// CLI. This avoids the OAuth-provider redirect path entirely; the emailed
-// /auth/v1/verify link honors loopback redirect_to values directly.
+// CLI. This avoids the OAuth-provider redirect path entirely.
+//
+// CAVEAT — this path does not currently complete against production, which is
+// why `auth login --email` defaults to the emailed code and this is behind
+// the hidden --link flag. Production auth emails are rendered by core's
+// send-auth-email hook, which deliberately never links to GoTrue's
+// /auth/v1/verify (a bare GET there burns the token, so URL scanners consume
+// the link). It links to <redirect_to origin>/auth/confirm?token_hash=…
+// instead — a page this CLI does not serve, carrying a token_hash rather than
+// the ?code= this listener waits for. Reviving one-click sign-in means
+// serving that path here and trading the token_hash at /auth/v1/verify.
 func LoginWithMagicLink(ctx context.Context, email string) (*Session, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -94,6 +103,16 @@ func waitForLoopbackCode(ctx context.Context, listener net.Listener) (string, er
 			desc := q.Get("error_description")
 			writeBrowserResponse(w, false, desc)
 			resultCh <- cbResult{err: fmt.Errorf("sign-in failed: %s: %s", errMsg, desc)}
+			return
+		}
+		// A token_hash here means the email came from the app's click-gated
+		// confirm flow, which this listener can't complete. Say so plainly
+		// rather than reporting a missing code the sender never sent.
+		if q.Get("token_hash") != "" {
+			const msg = "this sign-in link is the app's confirm link, which the CLI can't complete — " +
+				"re-run `episki auth login --email <you>` and type the 6-digit code from the email instead"
+			writeBrowserResponse(w, false, msg)
+			resultCh <- cbResult{err: errors.New(msg)}
 			return
 		}
 		code := q.Get("code")

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/episki/episki-cli/compare/v1.1.0...v1.1.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **deps:** Bump the actions group with 4 updates ([#4](https://github.com/episki/episki-cli/issues/4)) ([bfc3b3c](https://github.com/episki/episki-cli/commit/bfc3b3c8edc26f2099f57a196daf3c60ba553607))
+
 ## [1.1.0](https://github.com/episki/episki-cli/compare/v1.0.0...v1.1.0) (2026-08-27)
 
 

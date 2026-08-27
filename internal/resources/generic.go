@@ -2,6 +2,7 @@ package resources
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/episki/episki-cli/internal/auth"
 	"github.com/spf13/cobra"
@@ -97,7 +98,7 @@ func (s resourceSpec) getCmd(rf *auth.RootFlags) *cobra.Command {
 				Single().
 				Execute()
 			if err != nil {
-				return err
+				return notFoundErr(err, strings.TrimSuffix(s.use, "s"), args[0])
 			}
 			return printJSON(raw)
 		},

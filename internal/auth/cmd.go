@@ -67,7 +67,10 @@ func refreshCmd() *cobra.Command {
 }
 
 func loginCmd() *cobra.Command {
-	var provider, email, code string
+	var (
+		provider, email, code string
+		link                  bool
+	)
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Sign in via your browser, or with an emailed code (--email)",
@@ -90,8 +93,15 @@ func loginCmd() *cobra.Command {
 			switch {
 			case code != "":
 				s, err = LoginWithOTP(ctx, email, code)
-			case email != "":
+			case email != "" && link:
 				s, err = LoginWithMagicLink(ctx, email)
+			case email != "":
+				// The emailed code, not the emailed link, is the default:
+				// production auth emails link to the app's click-gated
+				// /auth/confirm page rather than to GoTrue's verify
+				// endpoint, and that page hands the session to the browser,
+				// not to this CLI. See LoginWithMagicLink's caveat.
+				s, err = LoginWithOTP(ctx, email, "")
 			default:
 				s, err = Login(ctx, LoginOptions{Provider: provider})
 			}
@@ -107,8 +117,10 @@ func loginCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&provider, "provider", "", "OAuth provider routed through Supabase Auth (e.g. google, github)")
-	cmd.Flags().StringVar(&email, "email", "", "Sign in via a magic link emailed to this address instead of the browser OAuth flow")
+	cmd.Flags().StringVar(&email, "email", "", "Sign in with a code emailed to this address instead of the browser OAuth flow")
 	cmd.Flags().StringVar(&code, "code", "", "Verify an emailed one-time code non-interactively (requires --email)")
+	cmd.Flags().BoolVar(&link, "link", false, "Finish the --email flow by clicking the emailed link instead of typing the code")
+	_ = cmd.Flags().MarkHidden("link")
 	return cmd
 }
 

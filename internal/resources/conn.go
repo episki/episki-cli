@@ -3,7 +3,9 @@ package resources
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/episki/episki-cli/internal/api"
 	"github.com/episki/episki-cli/internal/auth"
@@ -54,3 +56,17 @@ var uuidRe = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[
 
 // isUUID distinguishes ids from refs/slugs in `get <id|ref>` arguments.
 func isUUID(s string) bool { return uuidRe.MatchString(s) }
+
+// notFoundErr turns PostgREST's PGRST116 ("Cannot coerce the result to a
+// single JSON object") into the thing the user actually did: asked for a row
+// that isn't there — or, just as often with workspace-scoped RLS, one that
+// exists but is invisible from the active workspace.
+func notFoundErr(err error, kind, arg string) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "PGRST116") {
+		return fmt.Errorf("no %s found matching %q in the active workspace", kind, arg)
+	}
+	return err
+}

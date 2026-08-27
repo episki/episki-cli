@@ -1,0 +1,46 @@
+version: 2
+updates:
+  # go modules — one grouped pr a week. Note: the vendor/ directory is part
+  # of the tree (the Nix flake builds from it), and dependabot re-runs
+  # `go mod vendor` itself for vendored modules, so its prs land complete.
+  - package-ecosystem: gomod
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    open-pull-requests-limit: 5
+    assignees:
+      - justinleapline
+    labels:
+      - dependencies
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+      include: scope
+    groups:
+      go:
+        patterns:
+          - '*'
+
+  # github actions — all grouped into a single pr
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+    open-pull-requests-limit: 5
+    assignees:
+      - justinleapline
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+      include: scope
+    groups:
+      actions:
+        patterns:
+          - '*'

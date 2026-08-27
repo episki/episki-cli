@@ -40,7 +40,7 @@ Requires [Nix](https://nixos.org/download) with flakes enabled.
 
 ### Install with Go
 
-Requires [Go](https://go.dev/doc/install) 1.22+.
+Requires [Go](https://go.dev/doc/install) 1.25+.
 
 ```sh
 go install 'github.com/episki/episki-cli/cmd/episki@latest'
@@ -69,13 +69,42 @@ episki [resource] <command> [flags...]
 | `workspaces` (`ws`) | `list`, `current`, `use <id\|slug>` |
 | `frameworks` | `list`, `get <id>` |
 | `controls` | `list`, `get <id\|ref>` |
-| `work-items` (`wi`, `tasks`) | `list`, `get <id\|ref>`, `update <id\|ref> --status/--due/--name`, `archive`, `restore` |
-| `evidence` | `list`, `get <id>` |
+| `programs` | `list`, `get <id>` |
+| `work-items` (`wi`, `tasks`) | `list [--kind K] [--archived]`, `get <id\|ref>`, `update <id\|ref> --status/--due/--name`, `archive`, `restore` |
+| `evidence` | `list`, `get <id>`, `upload <file>` |
 | `policies` | `list`, `get <id>` |
 | `risks` | `list`, `get <id\|ref>` |
+| `vendors` | `list`, `get <id>` |
+| `obligations` | `list`, `get <id\|ref>` |
+| `exceptions` | `list`, `get <id>` |
+| `goals` | `list`, `get <id>` |
+
+Assessments, reviews, decisions and the rest of the work-item kinds are
+`work-items list --kind <kind>` — they all live in one table.
 
 List commands take `--limit N` (default 50, server caps at 1000) and `--json`
 for scripting; `get` always prints JSON. For help on any command, append `--help`.
+
+## Evidence
+
+`episki evidence upload <file>` puts a local file into the workspace's
+evidence store — the point of a CLI for this is piping artifacts straight out
+of a CI job:
+
+```sh
+episki evidence upload ./scan-report.pdf --type export --source "ci: nightly-scan"
+episki evidence upload ./soc2.pdf --evidence 7f3c…   # attach to an existing record
+```
+
+By default a new evidence record is created, named after the file; `--evidence`
+attaches to an existing one instead. Files are de-duplicated by SHA-256 across
+the workspace, so re-uploading bytes that are already there reports the
+existing record and uploads nothing — safe to run on every CI build.
+
+The bucket accepts PDF, ZIP, PNG/JPEG/WebP/GIF, Word/Excel, and plain
+text/CSV/Markdown, up to 50 MiB. The bytes go straight from your machine to
+storage on a short-lived signed URL; the app only ever sees the file's name,
+size, and hash.
 
 ## Authentication
 
@@ -88,10 +117,10 @@ and do here.
 `episki auth login` runs an OAuth PKCE flow against episki's auth in your
 browser. Tokens are stored in your OS keychain and refreshed automatically.
 
-`episki auth login --email you@example.com` signs in with an emailed magic
-link instead — the link lands on the CLI's local listener, so no browser
-OAuth round-trip is involved. Add `--code <n>` to verify an emailed one-time
-code non-interactively.
+`episki auth login --email you@example.com` signs in with a 6-digit code
+emailed to you, which the CLI then prompts for — no browser round-trip. Add
+`--code <n>` to pass a code from a previous send non-interactively, which is
+the shape CI wants.
 
 Credentials are resolved in this order:
 
@@ -177,7 +206,9 @@ export EPISKI_NO_UPDATE_CHECK=1
 ## Development
 
 ```sh
-./scripts/run auth status
+./scripts/run auth status   # run the CLI from source
+go test ./...               # unit tests
+go vet ./...
 ```
 
 Dependencies are vendored (the Nix flake relies on it) — after changing
@@ -198,3 +229,7 @@ One-time setup before the first release:
    tap) — the default `GITHUB_TOKEN` can't write to other repos.
 4. Serve `bin/install.sh` at `https://cli.episki.com/install.sh` (the
    `episki upgrade` command and the curl installer both point there).
+
+## License
+
+[MIT](LICENSE)

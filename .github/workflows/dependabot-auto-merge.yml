@@ -1,0 +1,85 @@
+# auto-approve and squash-merge low-risk dependabot PRs:
+#   - devDependencies (`direct:development`): patch and minor
+#   - everything else (runtime deps, transitive/indirect, github-actions):
+#     patch only
+# A grouped PR qualifies only if EVERY dependency in it does, judged from
+# fetch-metadata's per-dependency `updated-dependencies-json` (its top-level
+# `dependency-type` describes one dependency, not the group). Anything else,
+# including every major, waits for a human.
+#
+# Gated on BOTH the PR's author and the event's actor being dependabot. Under
+# pull_request_target this job holds a write token. The author
+# check alone is not enough: fetch-metadata parses only the PR's first
+# commit, so someone appending a change to an eligible dependabot PR would
+# still read as "patch update" and get approved. When anyone else pushes to a
+# dependabot PR (actor != dependabot), the job instead turns auto-merge OFF,
+# so an approval or auto-merge granted earlier cannot carry the foreign
+# commit into main; a human has to merge it. The merge is also bound to the
+# head commit this run inspected (`--match-head-commit`).
+# Nothing here checks out or runs PR code.
+#
+# Merges run on GITHUB_TOKEN, so they do not trigger push workflows on main
+# (GitHub's recursion guard). Vercel's git integration still deploys them.
+name: dependabot auto-merge
+
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Someone else changed a dependabot PR — stop auto-merging it
+        if: github.actor != 'dependabot[bot]'
+        run: |
+          echo "::notice::${ACTOR} acted on this dependabot PR; disabling auto-merge so it needs a human merge."
+          gh pr merge --disable-auto "$PR_URL" || echo "auto-merge was not enabled"
+        env:
+          ACTOR: ${{ github.actor }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch dependabot metadata
+        if: github.actor == 'dependabot[bot]'
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+
+      # Explicit allow-list of update types: fetch-metadata reports an EMPTY
+      # updateType when it can't classify a version change, and that must not
+      # qualify (a `!= semver-major` test would let it through).
+      - name: Decide whether this update may merge unattended
+        if: github.actor == 'dependabot[bot]'
+        id: policy
+        env:
+          DEPS: ${{ steps.metadata.outputs.updated-dependencies-json }}
+        run: |
+          echo "$DEPS" | jq -r '.[] | "  \(.dependencyName): \(.dependencyType) \(.updateType)"'
+          eligible="$(echo "$DEPS" | jq -r '
+            length > 0 and all(.[];
+              .updateType == "version-update:semver-patch"
+              or (.dependencyType == "direct:development" and .updateType == "version-update:semver-minor"))')"
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+          if [ "$eligible" != "true" ]; then
+            echo "::notice::Not auto-merging: only devDependency patch/minor and other patch updates merge unattended."
+          fi
+
+      - name: Approve PR
+        if: steps.policy.outputs.eligible == 'true'
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.policy.outputs.eligible == 'true'
+        run: gh pr merge --auto --squash --match-head-commit "$HEAD_SHA" "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

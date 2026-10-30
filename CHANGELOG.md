@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/episki/episki-cli/compare/v1.1.1...v1.1.2) (2026-10-30)
+
+
+### Bug Fixes
+
+* **deps:** Bump golang.org/x/term from 0.46.0 to 0.47.0 in the go group ([#8](https://github.com/episki/episki-cli/issues/8)) ([d1dbd29](https://github.com/episki/episki-cli/commit/d1dbd295940439163f1f8e759dde62e2b5c3b22e))
+
 ## [1.1.1](https://github.com/episki/episki-cli/compare/v1.1.0...v1.1.1) (2026-10-22)
 
 

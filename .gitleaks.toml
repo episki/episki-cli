@@ -1,0 +1,10 @@
+# Extends gitleaks' default rules; read automatically from the repo root.
+[extend]
+useDefault = true
+
+# Supabase publishable keys are public by design (the successor to the anon
+# key) and ship inside the CLI binary on purpose.
+[[allowlists]]
+description = "Supabase publishable keys"
+regexTarget = "secret"
+regexes = ['''^sb_publishable_''']

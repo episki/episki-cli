@@ -2,6 +2,8 @@ module github.com/episki/episki-cli
 
 go 1.26.0
 
+toolchain go1.26.10
+
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c

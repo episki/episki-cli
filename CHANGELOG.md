@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.2](https://github.com/episki/episki-cli/compare/v1.1.1...v1.1.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **deps:** bump Go toolchain to 1.26.11 for GO-2026-6859 ([#12](https://github.com/episki/episki-cli/issues/12)) ([dc9222a](https://github.com/episki/episki-cli/commit/dc9222a1940883ceba9c58284292947a9fdf3d9f))
+* **deps:** Bump golang.org/x/term ([#11](https://github.com/episki/episki-cli/issues/11)) ([bc361ff](https://github.com/episki/episki-cli/commit/bc361ff82e3f4c2599c95f546803c6c0a6d49067))
+* **deps:** Bump golang.org/x/term from 0.46.0 to 0.47.0 in the go group ([#8](https://github.com/episki/episki-cli/issues/8)) ([d1dbd29](https://github.com/episki/episki-cli/commit/d1dbd295940439163f1f8e759dde62e2b5c3b22e))
+
 ## [1.1.1](https://github.com/episki/episki-cli/compare/v1.1.0...v1.1.1) (2026-10-22)
 
 

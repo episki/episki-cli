@@ -1,0 +1,29 @@
+name: review-gate
+
+# Keeps a PR unmergeable while Copilot is still reviewing it. The logic lives
+# once, in episki/core (.github/workflows/review-gate.yml; see core's
+# .github/CLAUDE.md, *AI review gate*). This caller only supplies the triggers,
+# which a ruleset-required workflow cannot (it ignores `types:`, so a draft
+# marked ready would never be re-gated). The org ruleset `AI review gate`
+# requires the `copilot-review` status it posts.
+#
+# pull_request_target runs main's copy of this file and of core's, never the
+# PR's, and neither checks out PR code. A change here takes effect once on main.
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    permissions:
+      pull-requests: read
+      statuses: write
+    uses: episki/core/.github/workflows/review-gate.yml@main
